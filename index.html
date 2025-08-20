@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Harga Jual Produk</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+        }
+        .input-group .prefix {
+            padding: 0.5rem 0.75rem;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-right: none;
+            border-radius: 0.375rem 0 0 0.375rem;
+            color: #495057;
+        }
+        .input-group input, .input-group select {
+            border-radius: 0 0.375rem 0.375rem 0;
+        }
+        .input-group.suffix .suffix {
+            border-radius: 0 0.375rem 0.375rem 0;
+            border-right: 1px solid #ced4da;
+            border-left: none;
+        }
+        .input-group.suffix input {
+            border-radius: 0.375rem 0 0 0.375rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Kalkulator Harga Jual Produk</h1>
+            <p class="text-gray-600 mt-2">Hitung harga jual produk Anda secara cepat dan akurat.</p>
+        </header>
+
+        <div id="calculator-content" class="space-y-6 bg-white p-6 rounded-xl shadow-lg">
+            <!-- Modal Awal -->
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <h2 class="text-xl font-semibold mb-3">1. Modal Produk</h2>
+                <label for="modalAwal" class="block text-sm font-medium text-gray-700 mb-1">Harga Modal Awal (Cost of Goods)</label>
+                <div class="input-group">
+                    <span class="prefix">Rp</span>
+                    <input type="text" id="modalAwal" class="w-full p-2 border border-gray-300 rounded-r-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Contoh: 50000" oninput="formatRupiah(this); calculatePrice();">
+                </div>
+            </div>
+
+            <!-- Komponen Biaya -->
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-xl font-semibold">2. Komponen Biaya Tambahan</h2>
+                    <button id="addCost" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium">
+                        + Tambah Biaya
+                    </button>
+                </div>
+                <div id="costComponents" class="space-y-3">
+                    <!-- Komponen biaya dinamis akan ditambahkan di sini -->
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 p-2 bg-gray-50 rounded-md items-center cost-item">
+                        <div class="col-span-12 md:col-span-4">
+                            <input type="text" class="w-full p-2 border border-gray-300 rounded-md" placeholder="Nama Biaya (cth: Kemasan)" oninput="calculatePrice()">
+                        </div>
+                        <div class="col-span-12 md:col-span-3">
+                             <select class="w-full p-2 border border-gray-300 rounded-md cost-type">
+                                <option value="tetap">Biaya Tetap (Rp)</option>
+                                <option value="persentase">Biaya Variabel (%)</option>
+                            </select>
+                        </div>
+                        <div class="col-span-10 md:col-span-4">
+                           <input type="text" class="w-full p-2 border border-gray-300 rounded-md cost-value" placeholder="Nilai">
+                        </div>
+                        <div class="col-span-2 md:col-span-1 text-right">
+                            <button class="text-red-500 hover:text-red-700 remove-cost" onclick="removeCost(this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Preset Biaya -->
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <h2 class="text-xl font-semibold mb-3">Preset Biaya Cepat</h2>
+                <div class="flex flex-wrap gap-2">
+                    <button class="bg-gray-200 text-gray-800 px-3 py-1 rounded-full hover:bg-gray-300 text-sm" onclick="applyPreset('Admin Marketplace', 4.5)">+ Admin Marketplace (4.5%)</button>
+                    <button class="bg-gray-200 text-gray-800 px-3 py-1 rounded-full hover:bg-gray-300 text-sm" onclick="applyPreset('Komisi Afiliasi', 10)">+ Komisi Afiliasi (10%)</button>
+                </div>
+            </div>
+
+            <!-- Target Profit -->
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <h2 class="text-xl font-semibold mb-3">3. Target Profit</h2>
+                <div class="flex items-center space-x-4">
+                    <div class="flex-1">
+                        <label for="profitValue" class="block text-sm font-medium text-gray-700 mb-1">Nilai Profit</label>
+                        <div class="input-group" id="profit-input-group">
+                            <span class="prefix" id="profitPrefix">Rp</span>
+                            <input type="text" id="profitValue" class="w-full p-2 border border-gray-300 rounded-r-md" placeholder="Contoh: 25000" oninput="formatRupiah(this); calculatePrice();">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="profitType" class="block text-sm font-medium text-gray-700 mb-1">Jenis</label>
+                        <select id="profitType" class="w-full p-2 border border-gray-300 rounded-md" onchange="toggleProfitType(); calculatePrice();">
+                            <option value="tetap">Rupiah (Rp)</option>
+                            <option value="persentase">Persentase (%)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hasil Perhitungan -->
+            <div class="bg-indigo-50 p-6 rounded-lg text-center">
+                <h3 class="text-lg font-medium text-indigo-800">Harga Jual yang Disarankan</h3>
+                <p id="finalPrice" class="text-4xl font-bold text-indigo-900 my-2">Rp 0</p>
+                <p id="priceBreakdown" class="text-sm text-gray-600"></p>
+            </div>
+            
+            <div class="flex justify-end pt-4">
+                 <button id="exportPdf" class="bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 transition-colors font-medium">
+                    Ekspor ke PDF
+                </button>
+            </div>
+
+        </div>
+        
+        <footer class="text-center mt-8 text-sm text-gray-500">
+            <p>&copy; 2024 Dibuat untuk Anda. Hak Cipta Dilindungi.</p>
+        </footer>
+    </div>
+
+    <script>
+        // --- UTILITY FUNCTIONS ---
+        const parseRupiah = (value) => {
+            return parseFloat(value.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
+        };
+
+        const formatToRupiah = (value) => {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(value);
+        };
+
+        const formatRupiahInput = (input) => {
+            let value = parseRupiah(input.value);
+            input.value = value.toLocaleString('id-ID');
+        };
+
+        // --- CORE CALCULATION LOGIC ---
+        function calculatePrice() {
+            // 1. Kumpulkan semua input
+            let modalAwal = parseRupiah(document.getElementById('modalAwal').value);
+            let totalBiayaTetap = 0;
+            let totalBiayaPersen = 0;
+            let breakdownText = `Modal: ${formatToRupiah(modalAwal)}`;
+
+            // 2. Akumulasi semua biaya tetap dan persentase
+            document.querySelectorAll('.cost-item').forEach(item => {
+                const name = item.querySelector('input[type="text"]').value || 'Biaya Tambahan';
+                const type = item.querySelector('.cost-type').value;
+                const valueInput = item.querySelector('.cost-value');
+                let value = 0;
+
+                if (type === 'tetap') {
+                    value = parseRupiah(valueInput.value);
+                    totalBiayaTetap += value;
+                    if (value > 0) breakdownText += ` + ${name}: ${formatToRupiah(value)}`;
+                } else { // persentase
+                    value = parseRupiah(valueInput.value);
+                    totalBiayaPersen += value;
+                }
+            });
+
+            // 3. Hitung HPP (Harga Pokok Produksi)
+            const hpp = modalAwal + totalBiayaTetap;
+
+            // 4. Hitung jumlah profit yang diinginkan
+            const profitType = document.getElementById('profitType').value;
+            const profitValueInput = document.getElementById('profitValue');
+            let profitAmount = 0;
+            let profitText = "";
+
+            if (profitType === 'tetap') {
+                profitAmount = parseRupiah(profitValueInput.value);
+                if (profitAmount > 0) profitText = ` + Profit: ${formatToRupiah(profitAmount)}`;
+            } else { // persentase
+                let profitPercentage = parseRupiah(profitValueInput.value);
+                // Profit persentase dihitung dari HPP
+                profitAmount = hpp * (profitPercentage / 100);
+                if (profitAmount > 0) profitText = ` + Profit (${profitPercentage}%): ${formatToRupiah(profitAmount)}`;
+            }
+
+            // 5. Hitung harga dasar sebelum biaya persentase
+            const basePrice = hpp + profitAmount;
+
+            // 6. Hitung harga jual akhir menggunakan rumus: Harga Jual = Harga Dasar / (1 - %Biaya)
+            let finalPrice = basePrice;
+            let biayaVariabelAmount = 0;
+
+            if (totalBiayaPersen > 0) {
+                if (totalBiayaPersen >= 100) {
+                    finalPrice = Infinity;
+                } else {
+                    finalPrice = basePrice / (1 - (totalBiayaPersen / 100));
+                    biayaVariabelAmount = finalPrice - basePrice;
+                }
+            }
+            
+            // 7. Susun rincian perhitungan untuk ditampilkan
+            breakdownText += profitText;
+            if (biayaVariabelAmount > 0 && isFinite(biayaVariabelAmount)) {
+                breakdownText += ` + Biaya Var. (${totalBiayaPersen}% dari Harga Jual): ${formatToRupiah(biayaVariabelAmount)}`;
+            }
+
+            // 8. Tampilkan hasil
+            if (!isFinite(finalPrice)) {
+                document.getElementById('finalPrice').textContent = "Error";
+                document.getElementById('priceBreakdown').textContent = "Total persentase biaya variabel tidak boleh 100% atau lebih.";
+            } else {
+                document.getElementById('finalPrice').textContent = formatToRupiah(finalPrice);
+                document.getElementById('priceBreakdown').textContent = breakdownText;
+            }
+        }
+
+        // --- DYNAMIC ELEMENT HANDLING ---
+        document.getElementById('addCost').addEventListener('click', () => {
+            const costComponents = document.getElementById('costComponents');
+            const newItem = document.createElement('div');
+            newItem.className = 'grid grid-cols-1 md:grid-cols-12 gap-2 p-2 bg-gray-50 rounded-md items-center cost-item';
+            newItem.innerHTML = `
+                <div class="col-span-12 md:col-span-4">
+                    <input type="text" class="w-full p-2 border border-gray-300 rounded-md" placeholder="Nama Biaya" oninput="calculatePrice()">
+                </div>
+                <div class="col-span-12 md:col-span-3">
+                    <select class="w-full p-2 border border-gray-300 rounded-md cost-type">
+                        <option value="tetap">Biaya Tetap (Rp)</option>
+                        <option value="persentase">Biaya Variabel (%)</option>
+                    </select>
+                </div>
+                <div class="col-span-10 md:col-span-4">
+                   <input type="text" class="w-full p-2 border border-gray-300 rounded-md cost-value" placeholder="Nilai">
+                </div>
+                <div class="col-span-2 md:col-span-1 text-right">
+                    <button class="text-red-500 hover:text-red-700 remove-cost" onclick="removeCost(this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                </div>
+            `;
+            costComponents.appendChild(newItem);
+            
+            const newTypeSelect = newItem.querySelector('.cost-type');
+            const newValueInput = newItem.querySelector('.cost-value');
+            newTypeSelect.addEventListener('change', () => handleCostTypeChange(newTypeSelect, newValueInput));
+            handleCostTypeChange(newTypeSelect, newValueInput); // Initialize
+        });
+
+        function removeCost(button) {
+            button.closest('.cost-item').remove();
+            calculatePrice();
+        }
+
+        function toggleProfitType() {
+            const profitType = document.getElementById('profitType').value;
+            const profitInputGroup = document.getElementById('profit-input-group');
+            const profitPrefix = document.getElementById('profitPrefix');
+            const profitValueInput = document.getElementById('profitValue');
+            
+            profitValueInput.value = '';
+
+            if (profitType === 'tetap') {
+                profitPrefix.textContent = 'Rp';
+                profitInputGroup.classList.remove('suffix');
+                profitPrefix.classList.remove('hidden');
+                profitValueInput.oninput = () => { formatRupiahInput(profitValueInput); calculatePrice(); };
+                profitValueInput.placeholder = "Contoh: 25000";
+            } else { // persentase
+                profitPrefix.classList.add('hidden');
+                profitInputGroup.classList.add('suffix');
+                if (!profitInputGroup.querySelector('.suffix')) {
+                    const suffix = document.createElement('span');
+                    suffix.className = 'prefix suffix';
+                    suffix.textContent = '%';
+                    profitInputGroup.appendChild(suffix);
+                }
+                profitValueInput.oninput = () => calculatePrice();
+                profitValueInput.placeholder = "Contoh: 25";
+            }
+            calculatePrice();
+        }
+
+        function handleCostTypeChange(selectElement, inputElement) {
+            if (selectElement.value === 'tetap') {
+                inputElement.oninput = () => { formatRupiahInput(inputElement); calculatePrice(); };
+                inputElement.placeholder = "Nilai (Rp)";
+            } else {
+                inputElement.oninput = () => calculatePrice();
+                inputElement.placeholder = "Nilai (%)";
+            }
+            inputElement.value = '';
+            calculatePrice();
+        }
+        
+        // --- PRESET & EXPORT ---
+        function applyPreset(name, value) {
+            const costComponents = document.getElementById('costComponents');
+            const newItem = document.createElement('div');
+            newItem.className = 'grid grid-cols-1 md:grid-cols-12 gap-2 p-2 bg-gray-50 rounded-md items-center cost-item';
+            newItem.innerHTML = `
+                <div class="col-span-12 md:col-span-4">
+                    <input type="text" class="w-full p-2 border border-gray-300 rounded-md" value="${name}" oninput="calculatePrice()">
+                </div>
+                <div class="col-span-12 md:col-span-3">
+                    <select class="w-full p-2 border border-gray-300 rounded-md cost-type">
+                        <option value="persentase" selected>Biaya Variabel (%)</option>
+                        <option value="tetap">Biaya Tetap (Rp)</option>
+                    </select>
+                </div>
+                <div class="col-span-10 md:col-span-4">
+                   <input type="text" class="w-full p-2 border border-gray-300 rounded-md cost-value" value="${value}">
+                </div>
+                <div class="col-span-2 md:col-span-1 text-right">
+                    <button class="text-red-500 hover:text-red-700 remove-cost" onclick="removeCost(this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                </div>
+            `;
+            costComponents.appendChild(newItem);
+            
+            const newTypeSelect = newItem.querySelector('.cost-type');
+            const newValueInput = newItem.querySelector('.cost-value');
+            newTypeSelect.addEventListener('change', () => handleCostTypeChange(newTypeSelect, newValueInput));
+            handleCostTypeChange(newTypeSelect, newValueInput);
+            newValueInput.value = value;
+            calculatePrice();
+        }
+
+        document.getElementById('exportPdf').addEventListener('click', () => {
+            const element = document.getElementById('calculator-content');
+            const opt = {
+              margin:       0.5,
+              filename:     'perhitungan_harga_jual.pdf',
+              image:        { type: 'jpeg', quality: 0.98 },
+              html2canvas:  { scale: 2, useCORS: true },
+              jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        });
+
+
+        // --- INITIALIZE ---
+        window.onload = () => {
+            // Ganti nama fungsi formatRupiah menjadi formatRupiahInput untuk menghindari konflik
+            window.formatRupiah = formatRupiahInput;
+
+            document.querySelectorAll('.cost-item').forEach(item => {
+                const typeSelect = item.querySelector('.cost-type');
+                const valueInput = item.querySelector('.cost-value');
+                typeSelect.addEventListener('change', () => handleCostTypeChange(typeSelect, valueInput));
+                handleCostTypeChange(typeSelect, valueInput);
+            });
+
+            calculatePrice();
+            toggleProfitType();
+        };
+
+    </script>
+</body>
+</html>
